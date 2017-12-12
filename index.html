@@ -18,7 +18,12 @@
 				font-family: 'Roboto', sans-serif;
 			}
 			
-			
+			canvas {
+				width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
 			
 		</style>
 		
@@ -37,10 +42,10 @@
 			<div id="content">
 			
 				<div id="username"></div>
+				
+				
 				<canvas id="myCanvas" style="margin-left: auto; margin-right: auto;"></canvas>
-				
-				
-				
+				<canvas id="ScreenInfo" style="margin-left: auto; margin-right: auto; pointer-events:none;"></canvas>
 			</div>
 	
 		</div>
@@ -163,6 +168,88 @@
 				
 			}
 			
+			var ScreenInfo = function(options) {
+				this.options = options;
+				this.canvas = options.canvas;
+				this.ctx = this.canvas.getContext("2d");
+				this.hitctx = options.hitctx;
+				this.data = options.data;
+				this.colorKey = options.colorKey;
+				this.object = 
+					
+					{
+					"options": this.options,
+					"colorKey": this.colorKey,
+					"text": "test",
+					"meta": {"onClick": "onNameClick"}
+
+					};
+				
+				console.log(this.object);
+				
+				this.getObject = function() {
+					return this.object;
+				}
+				
+				this.draw = function() {
+					
+					this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+					
+					
+					
+					
+					
+					
+					var d = new Date();
+					var n = d.getHours();
+					var m = d.getMinutes();
+					var t = n;
+					var scale = 12;
+					var startingx = this.canvas.width * .109;
+					var nextstartpoint = startingx;
+
+					for(var categ in this.data) {
+						
+						val = this.options.data[categ];
+						this.ctx.fillStyle = val.color;
+						if(val.AppointTitle !== "~ None ~") {
+							this.ctx.fillRect(nextstartpoint, this.canvas.height * .1 + 30, (val.endTime - val.startTime) * scale, 25);
+							console.log(nextstartpoint);
+						}
+						
+						if(val.startTime <= n + (m / 60)   && n + (m / 60) <= val.endTime) {
+							
+							t = startingx + (val.startTime * scale) + ((n - val.startTime) * scale) + ((m / 60) * scale);
+							console.log(val);
+						}
+						
+						nextstartpoint = nextstartpoint + (val.endTime - val.startTime) * scale;
+					}
+					
+					ctx.font = "8px Arial";
+					ctx.fillStyle = "grey";
+				
+					ctx.fillText("1 AM", startingx - 20, this.canvas.height * .1 + 45);
+					ctx.fillText("12 PM", startingx + 300, this.canvas.height * .1 + 45);
+					ctx.fillText(getFormattedTime(n), t - 10, this.canvas.height * .1 + 70);
+					
+					this.ctx.beginPath();
+					var startingx = startingx;
+					var startingy = this.canvas.height * .1 + 30;
+					console.log("t", t );
+					this.ctx.moveTo(t, startingy - 3);
+					this.ctx.lineTo(t, startingy + 28);
+					this.ctx.strokeStyle = "white";
+					
+					this.ctx.stroke();
+					
+					
+					drawBox(this.hitctx, this.canvas.width * .1, this.canvas.height * .1 + 30, 240, 25, this.colorKey);
+				
+				}
+				
+			}
+			
 			
 			var Piechart = function(options){
 				this.options = options;
@@ -206,7 +293,7 @@
 						var newScale = options.scale;
 						
 						if(this.highlightedTimeBlock != null) {
-							console.log(val);
+							
 							if(this.highlightedTimeBlock === val.id) {
 								newScale = 2.8;
 							}
@@ -237,17 +324,15 @@
 						
 						
 						
-						console.log(d.getMinutes() / 100);
 						
 						
 						if(val.startTime <= n + (d.getMinutes() / 60)   && n + (d.getMinutes() / 60) <= val.endTime) {
 							
-							var slice = 2 * Math.PI * ((n - val.startTime) / 24 );
+							var slice = 2 * Math.PI * ((n - val.startTime) / 23 );
 							
-							this.currentTimeAngle = start_angle + slice + (d.getMinutes() / 360) ;
+							this.currentTimeAngle = start_angle + slice + (d.getMinutes() / 360) + 1/24 ;
 							this.currentAppointment = val;
-							console.log(currentTimeAngle);
-							console.log(d.getMinutes());
+						
 							
 						}
 						
@@ -296,7 +381,7 @@
 						this.ctx.font = "bold 12px Arial";
 						
 						if(this.highlightedTimeBlock != null) {
-							console.log(val);
+							
 							if(this.highlightedTimeBlock === val.id) {
 								this.ctx.fillText(val.AppointTitle, labelX,labelY);
 								this.ctx.fillText(getFormattedTime(val.startTime) + " - " + getFormattedTime(val.endTime), labelX,labelY+ 15);
@@ -341,6 +426,16 @@
 				return `rgb(${r},${g},${b})`;
 			}
 			
+			function getNewColor(colorArray) {
+				var done = false;
+				while(!done) {
+					const colorKey = getRandomColor();
+					if(!colorArray[colorKey]) {
+						return colorKey;
+					}
+				}
+			}
+			
 			function onNameClick(val) {
 				alert(val.text);
 				console.log("clicked");
@@ -355,12 +450,17 @@
 			hitCanvas.height = window.innerHeight ;
 			
 			
+			var screenInfo = document.getElementById("ScreenInfo");
+			screenInfo.width = window.innerWidth ;
+			screenInfo.height = window.innerHeight ;
 			
 			var scale = 0.2;
 			var doughnutHoleSize = 2;
 			
 			var ctx = myCanvas.getContext("2d");
 			var hitctx = hitCanvas.getContext("2d");
+			var screenInfoCtx = hitCanvas.getContext("2d");
+			
 		
 			var colorsHash = {};
 		
@@ -377,34 +477,26 @@
 			
 			var buttons = [
 				{"text": "Logan's Day", "width": 150, "height": 20, "x": myCanvas.width * .1, "y": myCanvas.height * .1, "meta": {"onClick": "onNameClick"}, "style": {"font-size": 25, "font-color": "white"}},
-				{"text": "Send Contact Request", "width": 150, "height": 20, "x": myCanvas.width * .1, "y": myCanvas.height * .1 + 60, "meta": {"onClick": "onNameClick"}, "style": {"font-size": 15, "font-color": "grey"}}
+				{"text": "Send Contact Request", "width": 150, "height": 20, "x": myCanvas.width * .1, "y": myCanvas.height * .1 + 150, "meta": {"onClick": "onNameClick"}, "style": {"font-size": 15, "font-color": "grey"}}
 			];
 			
 			
 			for (categ in myVinyls) {
 				val = myVinyls[categ];
-				var done = false;
-				while(!done) {
-					const colorKey = getRandomColor();
-					if(!colorsHash[colorKey]) {
-						val.colorKey = colorKey;
-						colorsHash[colorKey] = val;
-						done = true;
-					}
-				}
+				var colorKey = getNewColor(colorsHash);
+				val.colorKey = colorKey;
+				colorsHash[colorKey] = val;
+	
 			}
 			
 			for (var i = 0; i < buttons.length; i++) {
 				val = buttons[i];
-				var done = false;
-				while(!done) {
-					const colorKey = getRandomColor();
-					if(!colorsHash[colorKey]) {
-						val.colorKey = colorKey;
-						colorsHash[colorKey] = val;
-						done = true;
-					}
-				}
+				var colorKey = getNewColor(colorsHash);
+				val.colorKey = colorKey;
+				colorsHash[colorKey] = val;
+				console.log(val);
+			
+				
 			}
 			
 			
@@ -423,38 +515,58 @@
 			);
 			myDougnutChart.draw();
 			
+			var myscreenInfo = new ScreenInfo(
+				{
+					canvas: screenInfo,
+					data: myVinyls,
+					hitctx: hitctx,
+					colorKey: getNewColor(colorsHash)
+				}
+			);
+			
+			myscreenInfo.draw();
+			colorsHash[myscreenInfo.colorKey] = myscreenInfo.getObject();
+			console.log(colorsHash[myscreenInfo.colorKey]);
 			
 			function drawClock() {
 				myDougnutChart.draw();
+				myscreenInfo.draw();
 			}
 			
 			setInterval(drawClock, 30000);
 			
 			myCanvas.addEventListener('click', (e) => {
+				console.log("test");
 				const mousePos = {
 					x: e.clientX - myCanvas.offsetTop,
 					y: e.clientY - myCanvas.offsetLeft
 				};
 				const pixel = hitctx.getImageData(mousePos.x, mousePos.y, 1, 1).data;
+				console.log(pixel);
 				const color = `rgb(${pixel[0]},${pixel[1]},${pixel[2]})`;
-				const shape = colorsHash[color];
+				 shape = colorsHash[color];
+				console.log("shape:" + shape);
 				if (shape) {
 					
-					if(shape.id == undefined) {
+							console.log("asdfasdf");
+					if(shape.id === undefined) {
 					
-						if(shape.meta.onClick !== null) {
+						if(shape.meta.onClick !== undefined) {
 							
 							window[shape.meta['onClick']](shape);
+							
 						}
 					}
 					myDougnutChart.highlightedTimeBlock = shape.id;
 					
 					myDougnutChart.draw();
+					myscreenInfo.draw();
 					
 				}else {
-					myDougnutChart.highlightedTimeBlock = null;
+					myDougnutChart.highlightedTimeBlock = 0;
 					
 					myDougnutChart.draw();
+					myscreenInfo.draw();
 				}
 			});
 			
