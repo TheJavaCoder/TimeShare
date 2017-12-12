@@ -118,6 +118,28 @@
 				
 			}
 			
+			function drawTimeShareTitle(ctx,  x, y, text, style) {
+				
+				var fontsize = style['font-size'];
+				var fontcolor = style['font-color'];
+				
+				if(fontsize == null) {
+					fontsize = 15;
+				}
+				
+				if(fontcolor == null) {
+					fontcolor = "grey";
+				}
+				
+				
+				ctx.font = fontsize + "px Arial";
+				
+				ctx.fillStyle = fontcolor;
+				
+			
+				
+				ctx.fillText(text, x, y);
+			}
 			
 			function drawTimeMarkers(ctx, x, y, radius) {
 			
@@ -135,6 +157,11 @@
 				
 			}
 			
+			function drawBox(ctx, startingx, startingy, endingx, endingy, color) {
+				ctx.fillStyle = color;
+				ctx.fillRect(startingx, startingy, endingx, endingy);
+				
+			}
 			
 			
 			var Piechart = function(options){
@@ -143,7 +170,7 @@
 				this.canvas = options.canvas;
 				this.ctx = this.canvas.getContext("2d");
 				this.hitctx = options.hitctx;
-				this.colors = options.colors;
+				
 				this.x = options.centerPointX;
 				this.y = options.centerPointY;
 				this.currentTimeAngle = 0;
@@ -195,6 +222,8 @@
 							val.color
 						);
 						
+						
+						//This draws on the hit canvas..
 						drawPieSlice(
 							this.hitctx,
 							this.x,
@@ -289,9 +318,17 @@
 								"white"
 							);
 					
-					drawCurrentAppointmentText(this.ctx, this.canvas.width * .75, this.canvas.height * 0.70, this.currentAppointment);
+					drawCurrentAppointmentText(this.ctx, this.canvas.width * .8, this.canvas.height * 0.8, this.currentAppointment);
 					drawTimeMarkers(this.ctx, this.x, this.y, Math.min(this.canvas.width/options.scale,this.canvas.height/options.scale));
-			
+					
+					for(categ in this.options.buttons) {
+						val = this.options.buttons[categ];
+						drawTimeShareTitle(this.ctx, val.x, val.y, val.text, val.style);
+						drawBox(this.hitctx, val.x, val.y - val.height, val.width, val.height, val.colorKey);
+						
+					}
+					
+					
 				}
 			}
 			
@@ -304,7 +341,10 @@
 				return `rgb(${r},${g},${b})`;
 			}
 			
-			
+			function onNameClick(val) {
+				alert(val.text);
+				console.log("clicked");
+			}
 		
 			var myCanvas = document.getElementById("myCanvas");
 			myCanvas.width = window.innerWidth ;
@@ -335,6 +375,12 @@
 				
 			};
 			
+			var buttons = [
+				{"text": "Logan's Day", "width": 150, "height": 20, "x": myCanvas.width * .1, "y": myCanvas.height * .1, "meta": {"onClick": "onNameClick"}, "style": {"font-size": 25, "font-color": "white"}},
+				{"text": "Send Contact Request", "width": 150, "height": 20, "x": myCanvas.width * .1, "y": myCanvas.height * .1 + 60, "meta": {"onClick": "onNameClick"}, "style": {"font-size": 15, "font-color": "grey"}}
+			];
+			
+			
 			for (categ in myVinyls) {
 				val = myVinyls[categ];
 				var done = false;
@@ -347,19 +393,31 @@
 					}
 				}
 			}
-			console.log(myVinyls);
+			
+			for (var i = 0; i < buttons.length; i++) {
+				val = buttons[i];
+				var done = false;
+				while(!done) {
+					const colorKey = getRandomColor();
+					if(!colorsHash[colorKey]) {
+						val.colorKey = colorKey;
+						colorsHash[colorKey] = val;
+						done = true;
+					}
+				}
+			}
 			
 			
 			var myDougnutChart = new Piechart(
 				{
 					canvas:myCanvas,
 					data:myVinyls,
-					colors:["#3D3D3D", "#FE4365", "#3D3D3D","#FC9D9A", "#F9CDAD","#C8C8A9","83AF9B", "blue"],
+					buttons: buttons,
 					doughnutHoleSize:.95,
 					scale: 3,
 					centerPointX: myCanvas.width/2,
 					centerPointY: myCanvas.height/2,
-					highlightedTimeBlock:0,
+					highlightedTimeBlock:null,
 					hitctx: hitctx
 				}
 			);
@@ -381,36 +439,20 @@
 				const color = `rgb(${pixel[0]},${pixel[1]},${pixel[2]})`;
 				const shape = colorsHash[color];
 				if (shape) {
-					myDougnutChart = new Piechart(
-						{
-							canvas:myCanvas,
-							data:myVinyls,
-							colors:["#3D3D3D", "#FE4365", "#3D3D3D","#FC9D9A", "#F9CDAD","#C8C8A9","83AF9B", "blue"],
-							doughnutHoleSize:.95,
-							scale: 3,
-							centerPointX: myCanvas.width/2,
-							centerPointY: myCanvas.height/2,
-							highlightedTimeBlock:shape.id,
-							hitctx: hitctx
+					
+					if(shape.id == undefined) {
+					
+						if(shape.meta.onClick !== null) {
+							
+							window[shape.meta['onClick']](shape);
 						}
-					);
+					}
+					myDougnutChart.highlightedTimeBlock = shape.id;
 					
 					myDougnutChart.draw();
 					
 				}else {
-					myDougnutChart = new Piechart(
-						{
-							canvas:myCanvas,
-							data:myVinyls,
-							colors:["#3D3D3D", "#FE4365", "#3D3D3D","#FC9D9A", "#F9CDAD","#C8C8A9","83AF9B", "blue"],
-							doughnutHoleSize:.95,
-							scale: 3,
-							centerPointX: myCanvas.width/2,
-							centerPointY: myCanvas.height/2,
-							highlightedTimeBlock:null,
-							hitctx: hitctx
-						}
-					);
+					myDougnutChart.highlightedTimeBlock = null;
 					
 					myDougnutChart.draw();
 				}
